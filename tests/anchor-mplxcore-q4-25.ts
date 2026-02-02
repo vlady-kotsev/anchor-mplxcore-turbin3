@@ -3,15 +3,21 @@ import { Program } from "@coral-xyz/anchor";
 import { AnchorMplxcoreQ425 } from "../target/types/anchor_mplxcore_q4_25";
 import { PublicKey, Keypair, SystemProgram } from "@solana/web3.js";
 import { assert } from "chai";
-import { MPL_CORE_PROGRAM_ID } from "@metaplex-foundation/mpl-core";
+import {
+  MPL_CORE_PROGRAM_ID,
+  fetchAsset,
+  mplCore,
+} from "@metaplex-foundation/mpl-core";
+import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 
 describe("anchor-mplxcore-q4-25", () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
-  const program = anchor.workspace.AnchorMplxcoreQ425 as Program<AnchorMplxcoreQ425>;
+  const program = anchor.workspace
+    .AnchorMplxcoreQ425 as Program<AnchorMplxcoreQ425>;
   const connection = provider.connection;
-
+  const umi = createUmi("http://127.0.0.1:8899").use(mplCore());
   // Accounts
   const payer = provider.wallet;
   const creator = Keypair.generate();
@@ -20,14 +26,18 @@ describe("anchor-mplxcore-q4-25", () => {
   const asset = Keypair.generate();
   const unauthorizedAuthority = Keypair.generate();
   const invalidCollection = Keypair.generate();
-
-
-  console.log(`payer / system_wallet ${payer.publicKey.toString()}`);
+  // const umi = console.log(
+  //   `payer / system_wallet ${payer.publicKey.toString()}`,
+  // );
   console.log(`creator ${creator.publicKey.toString()}`);
-  console.log(`nonWhitelistedCreator ${nonWhitelistedCreator.publicKey.toString()}`);
+  console.log(
+    `nonWhitelistedCreator ${nonWhitelistedCreator.publicKey.toString()}`,
+  );
   console.log(`collection ${collection.publicKey.toString()}`);
   console.log(`asset ${asset.publicKey.toString()}`);
-  console.log(`unauthorizedAuthority ${unauthorizedAuthority.publicKey.toString()}`);
+  console.log(
+    `unauthorizedAuthority ${unauthorizedAuthority.publicKey.toString()}`,
+  );
   console.log(`invalidCollection ${invalidCollection.publicKey.toString()}`);
 
   // PDAs
@@ -36,40 +46,50 @@ describe("anchor-mplxcore-q4-25", () => {
   let programDataAccount: PublicKey;
   let invalidCollectionAuthorityPda: PublicKey;
 
-
   before(async () => {
     // Fund accounts
     await provider.connection.requestAirdrop(creator.publicKey, 2_000_000_000); // 2 SOL
-    await provider.connection.requestAirdrop(nonWhitelistedCreator.publicKey, 2_000_000_000);
-    await provider.connection.requestAirdrop(unauthorizedAuthority.publicKey, 2_000_000_000);
+    await provider.connection.requestAirdrop(
+      nonWhitelistedCreator.publicKey,
+      2_000_000_000,
+    );
+    await provider.connection.requestAirdrop(
+      unauthorizedAuthority.publicKey,
+      2_000_000_000,
+    );
     await new Promise((resolve) => setTimeout(resolve, 500)); // Wait for airdrops
 
     // Derive PDAs
     whitelistedCreatorsPda = PublicKey.findProgramAddressSync(
       [Buffer.from("whitelist")],
-      program.programId
+      program.programId,
     )[0];
     console.log(`whitelistedCreatorsPda ${whitelistedCreatorsPda.toString()}`);
 
     collectionAuthorityPda = PublicKey.findProgramAddressSync(
       [Buffer.from("collection_authority"), collection.publicKey.toBuffer()],
-      program.programId
+      program.programId,
     )[0];
     console.log(`collectionAuthorityPda ${collectionAuthorityPda.toString()}`);
 
     invalidCollectionAuthorityPda = PublicKey.findProgramAddressSync(
-      [Buffer.from("collection_authority"), invalidCollection.publicKey.toBuffer()],
-      program.programId
+      [
+        Buffer.from("collection_authority"),
+        invalidCollection.publicKey.toBuffer(),
+      ],
+      program.programId,
     )[0];
-    console.log(`invalidCollectionAuthorityPda ${invalidCollectionAuthorityPda.toString()}`);
+    console.log(
+      `invalidCollectionAuthorityPda ${invalidCollectionAuthorityPda.toString()}`,
+    );
 
     // Derive ProgramData PDA using the BPF Loader Upgradeable program ID BPFLoaderUpgradeab1e11111111111111111111111
-    const BPF_LOADER_UPGRADEABLE_PROGRAM_ID = new PublicKey("BPFLoaderUpgradeab1e11111111111111111111111");
+    const BPF_LOADER_UPGRADEABLE_PROGRAM_ID = new PublicKey(
+      "BPFLoaderUpgradeab1e11111111111111111111111",
+    );
     programDataAccount = PublicKey.findProgramAddressSync(
-      [
-        program.programId.toBuffer(),
-      ],
-      BPF_LOADER_UPGRADEABLE_PROGRAM_ID
+      [program.programId.toBuffer()],
+      BPF_LOADER_UPGRADEABLE_PROGRAM_ID,
     )[0];
     console.log(`programDataAccount ${programDataAccount.toString()}`);
     // Verify ProgramData exists after deployment
@@ -102,13 +122,14 @@ describe("anchor-mplxcore-q4-25", () => {
         }
       }
 
-      const whitelistedCreators = await program.account.whitelistedCreators.fetch(whitelistedCreatorsPda);
+      const whitelistedCreators =
+        await program.account.whitelistedCreators.fetch(whitelistedCreatorsPda);
       console.log(`whitelistedCreators ${whitelistedCreators.creators}`);
       const creatorPubkeyStr = creator.publicKey.toString();
       assert.include(
-        whitelistedCreators.creators.map(c => c.toString()),
+        whitelistedCreators.creators.map((c) => c.toString()),
         creatorPubkeyStr,
-        "Creator should be whitelisted"
+        "Creator should be whitelisted",
       );
     });
   });
@@ -145,9 +166,17 @@ describe("anchor-mplxcore-q4-25", () => {
           console.log("No logs available in the error.");
         }
       }
-      const collectionAuthority = await program.account.collectionAuthority.fetch(collectionAuthorityPda);
-      assert.equal(collectionAuthority.creator.toString(), creator.publicKey.toString(), "Creator should be the collection authority");
-      assert.equal(collectionAuthority.collection.toString(), collection.publicKey.toString());
+      const collectionAuthority =
+        await program.account.collectionAuthority.fetch(collectionAuthorityPda);
+      assert.equal(
+        collectionAuthority.creator.toString(),
+        creator.publicKey.toString(),
+        "Creator should be the collection authority",
+      );
+      assert.equal(
+        collectionAuthority.collection.toString(),
+        collection.publicKey.toString(),
+      );
       assert.equal(collectionAuthority.nftName, args.nftName);
       assert.equal(collectionAuthority.nftUri, args.nftUri);
     });
@@ -200,7 +229,6 @@ describe("anchor-mplxcore-q4-25", () => {
         })
         .signers([asset])
         .rpc();
-
     });
 
     it("Fails to mint with invalid collection", async () => {
@@ -222,7 +250,11 @@ describe("anchor-mplxcore-q4-25", () => {
           .rpc();
         assert.fail("Should have failed with invalid collection");
       } catch (err) {
-        assert.equal(err.error.errorCode.code, "InvalidCollection", "Expected InvalidCollection error");
+        assert.equal(
+          err.error.errorCode.code,
+          "InvalidCollection",
+          "Expected InvalidCollection error",
+        );
       }
     });
   });
@@ -241,7 +273,6 @@ describe("anchor-mplxcore-q4-25", () => {
         })
         .signers([creator])
         .rpc();
-
     });
 
     it("Fails to freeze with unauthorized authority", async () => {
@@ -260,7 +291,11 @@ describe("anchor-mplxcore-q4-25", () => {
           .rpc();
         assert.fail("Should have failed with unauthorized authority");
       } catch (err) {
-        assert.equal(err.error.errorCode.code, "NotAuthorized", "Expected NotAuthorized error");
+        assert.equal(
+          err.error.errorCode.code,
+          "NotAuthorized",
+          "Expected NotAuthorized error",
+        );
       }
     });
   });
@@ -279,7 +314,6 @@ describe("anchor-mplxcore-q4-25", () => {
         })
         .signers([creator])
         .rpc();
-
     });
 
     it("Fails to thaw with unauthorized authority", async () => {
@@ -298,7 +332,59 @@ describe("anchor-mplxcore-q4-25", () => {
           .rpc();
         assert.fail("Should have failed with unauthorized authority");
       } catch (err) {
-        assert.equal(err.error.errorCode.code, "NotAuthorized", "Expected NotAuthorized error");
+        assert.equal(
+          err.error.errorCode.code,
+          "NotAuthorized",
+          "Expected NotAuthorized error",
+        );
+      }
+    });
+  });
+
+  describe("UpdateNft", () => {
+    it("Update an NFT", async () => {
+      let assetAccount = await fetchAsset(umi, asset.publicKey.toBase58());
+      assert.equal(assetAccount.name, "Test NFT");
+
+      const newName = "NewName";
+      await program.methods
+        .updateNft(newName)
+        .accountsStrict({
+          authority: creator.publicKey,
+          asset: asset.publicKey,
+          collection: collection.publicKey,
+          collectionAuthority: collectionAuthorityPda,
+          coreProgram: MPL_CORE_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([creator])
+        .rpc();
+
+        assetAccount = await fetchAsset(umi, asset.publicKey.toBase58());
+      assert.equal(assetAccount.name, newName);
+    });
+
+    it("Fails to update with unauthorized authority", async () => {
+      try {
+        await program.methods
+          .updateNft("NewName")
+          .accountsStrict({
+            authority: unauthorizedAuthority.publicKey,
+            asset: asset.publicKey,
+            collection: collection.publicKey,
+            collectionAuthority: collectionAuthorityPda,
+            coreProgram: MPL_CORE_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
+          })
+          .signers([unauthorizedAuthority])
+          .rpc();
+        assert.fail("Should have failed with unauthorized authority");
+      } catch (err) {
+        assert.equal(
+          err.error.errorCode.code,
+          "NotAuthorized",
+          "Expected NotAuthorized error",
+        );
       }
     });
   });

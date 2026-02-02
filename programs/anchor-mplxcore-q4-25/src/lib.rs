@@ -36,7 +36,7 @@ pub mod anchor_mplxcore_q4_25 {
         ctx.accounts.thaw_nft()
     }
 
-    // pub fn update_nft(ctx: Context<UpdateNft>, new_name: String) -> Result<()> {
-    //     ctx.accounts.update_nft(new_name)
-    // }
+    pub fn update_nft(ctx: Context<UpdateNft>, new_name: String) -> Result<()> {
+        ctx.accounts.update_nft(new_name)
+    }
 }
