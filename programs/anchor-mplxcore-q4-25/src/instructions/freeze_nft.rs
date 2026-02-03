@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use mpl_core::{
     instructions::UpdatePluginV1CpiBuilder,
-    types::{FreezeDelegate, Plugin, UpdateAuthority},
+    types::{FreezeDelegate, Plugin},
     ID as CORE_PROGRAM_ID,
 };
 
